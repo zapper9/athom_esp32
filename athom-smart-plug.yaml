@@ -14,7 +14,7 @@ substitutions:
   # Restore the relay (GPO switch) upon reboot to state:
   relay_restore_mode: RESTORE_DEFAULT_ON
   # Set the update interval for sensors
-  sensor_update_interval: 5s
+  sensor_update_interval: 10s
   # Current Limit in Amps. AU Plug = 10. IL, BR, EU, UK, US Plug = 16.
   current_limit : "16"
   # Define a domain for this device to use. i.e. iot.home.lan (so device will appear as athom-smart-plug-v2.iot.home.lan in DNS/DHCP logs)
@@ -36,7 +36,7 @@ substitutions:
   # Enable or disable the use of IPv6 networking on the device
   ipv6_enable: "false"
   # Power plug icon selection. Change to reflect the type/country of powr plug in use, this will update the power plug icon shown next to the switch
-  power_plug_type: "power-socket-au"  # Options: power-socket-au | power-socket-ch | power-socket-de | power-socket-eu | power-socket-fr | power-socket-it | power-socket-jp | power-socket-uk | power-socket-us |
+  power_plug_type: "power-socket-us"  # Options: power-socket-au | power-socket-ch | power-socket-de | power-socket-eu | power-socket-fr | power-socket-it | power-socket-jp | power-socket-uk | power-socket-us |
 
 ########################## End of Substitutions #########################
 
@@ -212,10 +212,10 @@ sensor:
       filters:
         - throttle_average: ${sensor_update_interval}
         - lambda: if (x < 0.060) return 0.0; else return x;   #For the chip will report less than 3w power when no load is connected
-#      on_value_range:
-#        - above: ${current_limit}
-#          then:
-#            - switch.turn_off: relay
+    #  on_value_range:
+    #    - above: ${current_limit}
+    #      then:
+    #        - switch.turn_off: relay
 
     voltage:
       name: "Voltage"
@@ -325,9 +325,51 @@ light:
 text_sensor:
   - platform: wifi_info
     ip_address:
-      name: "Device IP Address"
+      name: "IP Address"
+      icon: mdi:ip-network
+      entity_category: diagnostic
     ssid:
-      name: "Connected WiFi SSID"
+      name: "Connected SSID"
+      icon: mdi:wifi-strength-2
+      entity_category: diagnostic
+    mac_address:
+      name: "Mac Address"
+      icon: mdi:network-pos
+      entity_category: diagnostic
+
+  #  Creates a sensor showing when the device was last restarted
+  - platform: template
+    name: 'Last Restart'
+    id: device_last_restart
+    icon: mdi:clock
+    entity_category: diagnostic
+#    device_class: timestamp
+
+  #  Creates a sensor of the uptime of the device, in formatted days, hours, minutes and seconds
+  - platform: template
+    name: "Uptime"
+    entity_category: diagnostic
+    lambda: |-
+      int seconds = (id(uptime_sensor).state);
+      int days = seconds / (24 * 3600);
+      seconds = seconds % (24 * 3600);
+      int hours = seconds / 3600;
+      seconds = seconds % 3600;
+      int minutes = seconds /  60;
+      seconds = seconds % 60;
+      if ( days > 3650 ) {
+        return { "Starting up" };
+      } else if ( days ) {
+        return { (String(days) +"d " + String(hours) +"h " + String(minutes) +"m "+ String(seconds) +"s").c_str() };
+      } else if ( hours ) {
+        return { (String(hours) +"h " + String(minutes) +"m "+ String(seconds) +"s").c_str() };
+      } else if ( minutes ) {
+        return { (String(minutes) +"m "+ String(seconds) +"s").c_str() };
+      } else {
+        return { (String(seconds) +"s").c_str() };
+      }
+    icon: mdi:clock-start
+
 time:
   - platform: sntp
     id: sntp_time
