@@ -21,8 +21,6 @@ substitutions:
   dns_domain: ".local"
   # Set timezone of the smart plug. Useful if the plug is in a location different to the HA server. Can be entered in unix Country/Area format (i.e. "Australia/Sydney")
   timezone: ""
-  # Set the duration between the sntp service polling ntp.org servers for an update
-  sntp_update_interval: 6h
   # Network time servers for your region, enter from lowest to highest priority. To use local servers update as per zones or countries at: https://www.ntppool.org/zone/@
   sntp_server_1: "0.pool.ntp.org"
   sntp_server_2: "1.pool.ntp.org"
@@ -183,12 +181,6 @@ binary_sensor:
           - button.press: Reset
 
 sensor:
-  - platform: uptime
-    name: "Uptime Sensor"
-    id: uptime_sensor
-    entity_category: diagnostic
-    internal: true
-
   - platform: wifi_signal
     name: "WiFi Signal dB"
     id: wifi_signal_db
@@ -272,68 +264,35 @@ sensor:
     id: total_energy_sensor
     unit_of_measurement: kWh
     device_class: "energy"
-    state_class: "total_increasing"
+    state_class: "total"
     icon: mdi:lightning-bolt
-    accuracy_decimals: 3
-    lambda: |-
-      return id(total_energy);
-    update_interval: ${sensor_update_interval}
-
-  - platform: total_daily_energy
-    name: "Total Daily Energy"
-    restore: true
-    power_id: power_sensor
-    unit_of_measurement: kWh
-    icon: mdi:hours-24
-    accuracy_decimals: 3
-    filters:
-      - multiply: 0.001
-
-button:
-  - platform: restart
-    name: "Restart"
-    entity_category: config
-
-  - platform: factory_reset
-    name: "Factory Reset"
-    id: Reset
-    entity_category: config
-
-  - platform: safe_mode
-    name: "Safe Mode"
-    internal: false
-    entity_category: config
 
 switch:
   - platform: gpio
-    name: "Switch"
-    pin: GPIO5
+    pin: GPIO4
     id: relay
-    restore_mode: ${relay_restore_mode}
-    icon: mdi:${power_plug_type}
-
-light:
-  - platform: status_led
-    name: "Status LED"
-    id: blue_led
-    icon: mdi:lightbulb-outline
-    disabled_by_default: true
-    pin:
-      inverted: true
-      number: GPIO6
-
-text_sensor:
-  - platform: wifi_info
-    ip_address:
-      name: "IP Address"
-      icon: mdi:ip-network
-      entity_category: diagnostic
-    ssid:
-      name: "Connected SSID"
-      icon: mdi:wifi-strength-2
-      entity_category: diagnostic
-    mac_address:
-      name: "Mac Address"
-      icon: mdi:network-pos
-      entity_category: diagnostic
-
+    name: "Relay"
+    icon: mdi:electric-switch
+    on_turn_on:
+      - logger.log: "Relay is ON"
+    on_turn_off:
+      - logger.log: "Relay is OFF"
+    restore_mode: "${relay_restore_mode}"
+    on_state:  
+      then:
+        - logger.log: "Relay state: !state"
+        - switch.turn_on: relay
+    on_action:
+      - if:
+          condition:
+            lambda: "return id(relay).state;"
+          then:
+            - logger.log: "Relay turned ON!"
+          else:
+            - logger.log: "Relay turned OFF!"
+          
+output:
+  - platform: gpio
+    id: relay
+    pin: GPIO2
+    inverted: false
