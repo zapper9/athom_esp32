@@ -337,52 +337,47 @@ text_sensor:
       icon: mdi:network-pos
       entity_category: diagnostic
 
-  #  Creates a sensor showing when the device was last restarted
-  - platform: template
-    name: 'Last Restart'
-    id: device_last_restart
-    icon: mdi:clock
-    entity_category: diagnostic
-#    device_class: timestamp
+# Creates a sensor showing when the device was last restarted
+- platform: template
+  name: 'Last Restart'
+  id: device_last_restart
+  icon: mdi:clock
+  entity_category: diagnostic
 
-  #  Creates a sensor of the uptime of the device, in formatted days, hours, minutes and seconds
-  - platform: template
-    name: "Uptime"
-    entity_category: diagnostic
-    lambda: |-
-      int seconds = (id(uptime_sensor).state);
-      int days = seconds / (24 * 3600);
-      seconds = seconds % (24 * 3600);
-      int hours = seconds / 3600;
-      seconds = seconds % 3600;
-      int minutes = seconds /  60;
-      seconds = seconds % 60;
-      if ( days > 3650 ) {
-        return { "Starting up" };
-      } else if ( days ) {
-        return { (String(days) +"d " + String(hours) +"h " + String(minutes) +"m "+ String(seconds) +"s").c_str() };
-      } else if ( hours ) {
-        return { (String(hours) +"h " + String(minutes) +"m "+ String(seconds) +"s").c_str() };
-      } else if ( minutes ) {
-        return { (String(minutes) +"m "+ String(seconds) +"s").c_str() };
-      } else {
-        return { (String(seconds) +"s").c_str() };
-      }
-    icon: mdi:clock-start
+# Creates a sensor of the uptime of the device, in formatted days, hours, minutes, and seconds
+- platform: template
+  name: "Uptime"
+  entity_category: diagnostic
+  lambda: |-
+    int seconds = (id(uptime_sensor).state);
+    int days = seconds / (24 * 3600);
+    seconds = seconds % (24 * 3600);
+    int hours = seconds / 3600;
+    seconds = seconds % 3600;
+    int minutes = seconds /  60;
+    seconds = seconds % 60;
+    if ( days > 3650 ) {
+      return { "Starting up" };
+    } else if ( days ) {
+      return { (String(days) +"d " + String(hours) +"h " + String(minutes) +"m "+ String(seconds) +"s").c_str() };
+    } else if ( hours ) {
+      return { (String(hours) +"h " + String(minutes) +"m "+ String(seconds) +"s").c_str() };
+    } else if ( minutes ) {
+      return { (String(minutes) +"m "+ String(seconds) +"s").c_str() };
+    } else {
+      return { (String(seconds) +"s").c_str() };
+    }
+  icon: mdi:clock-start
 
-    time:
+time:
   - platform: sntp
     id: sntp_time
-  # Define the timezone of the device
     timezone: "${timezone}"
-  # Change sync interval from default 5min to 6 hours (or as set in substitutions)
     update_interval: ${sntp_update_interval}
-  # Set specific sntp servers to use
     servers: 
       - "${sntp_server_1}"
       - "${sntp_server_2}"
-      - "${sntp_server_3}"    
-  # Publish the time the device was last restarted
+      - "${sntp_server_3}"
     on_time_sync:
       then:
         # Update last restart time, but only once.
@@ -390,6 +385,7 @@ text_sensor:
             condition:
               lambda: 'return id(device_last_restart).state == "";'
             then:
-              - text_sensor.template.publish:
+              - text_sensor.publish:
                   id: device_last_restart
                   state: !lambda 'return id(sntp_time).now().strftime("%a %d %b %Y - %I:%M:%S %p");'
+
